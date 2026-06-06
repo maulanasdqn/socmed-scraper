@@ -4,13 +4,20 @@
   "compatibility_date": "2025-08-03",
   "compatibility_flags": ["nodejs_compat"],
   "main": "./src/index.tsx",
+  "account_id": "ce8a61fd47af22e57a2c286540cd954a",
+  "routes": [
+    {
+      "pattern": "scraper.stynx.app",
+      "custom_domain": true
+    }
+  ],
   "browser": {
     "binding": "MYBROWSER"
   },
   "kv_namespaces": [
     {
       "binding": "SCRAPE_CACHE",
-      "id": "scrape_cache_placeholder"
+      "id": "3d81f32720dd4f859feebebfb703c2cb"
     }
   ],
   "durable_objects": {
