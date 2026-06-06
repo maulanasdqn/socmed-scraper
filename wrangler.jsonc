@@ -2,5 +2,29 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "socmed-scraper",
   "compatibility_date": "2025-08-03",
-  "main": "./src/index.tsx"
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./src/index.tsx",
+  "browser": {
+    "binding": "MYBROWSER"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "SCRAPE_CACHE",
+      "id": "scrape_cache_placeholder"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "BROWSER_MANAGER",
+        "class_name": "BrowserManager"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["BrowserManager"]
+    }
+  ]
 }
