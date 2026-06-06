@@ -25,7 +25,13 @@ export class InstagramScraper implements Scraper {
     return res.setCookie.match(/csrftoken=([^;]+)/)?.[1] ?? "";
   }
 
-  private async fetchJson(url: string, referer: string, proxyUrl?: string): Promise<unknown> {
+  private async bare(url: string, referer: string, proxyUrl?: string): Promise<unknown> {
+    const headers = { "x-ig-app-id": APP_ID, "x-requested-with": "XMLHttpRequest" };
+    const res = await this.http.get(url, { headers, referer, retries: 3, proxyUrl });
+    return res.ok ? parseJsonLoose(res.body) : null;
+  }
+
+  private async withCsrf(url: string, referer: string, proxyUrl?: string): Promise<unknown> {
     const csrf = await this.csrfToken(proxyUrl);
     const headers = {
       "x-ig-app-id": APP_ID,
@@ -33,8 +39,16 @@ export class InstagramScraper implements Scraper {
       "x-csrftoken": csrf,
       cookie: `csrftoken=${csrf}`,
     };
-    const res = await this.http.get(url, { headers, referer, retries: 1, proxyUrl });
+    const res = await this.http.get(url, { headers, referer, retries: 2, proxyUrl });
     return res.ok ? parseJsonLoose(res.body) : null;
+  }
+
+  private async fetchJson(url: string, referer: string, proxyUrl?: string): Promise<unknown> {
+    if (proxyUrl) {
+      const bare = await this.bare(url, referer, proxyUrl);
+      if (bare) return bare;
+    }
+    return this.withCsrf(url, referer, proxyUrl);
   }
 
   async profile(url: string, options?: ScrapeOptions): Promise<ScrapeResult<NormalizedProfile>> {

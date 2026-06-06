@@ -34,14 +34,15 @@ Base path: `/api/v1/scrape`. Both endpoints are `POST` with a JSON body.
 
 `niche` is optional. When set, the scraper hits the platform's hashtag/explore endpoint for that term instead of the profile timeline. When empty, it returns the profile's recent posts.
 
-`proxyUrl` is optional. When set, fetch-tier requests are routed through it to escape the shared Worker IP and its rate limits. The target URL is URL-encoded and appended to `proxyUrl`, unless `proxyUrl` contains the literal `{url}` placeholder, in which case the target is substituted there:
+`proxyUrl` is optional. When set, fetch-tier requests are routed through a real HTTP or SOCKS5 proxy to escape the shared Worker IP and its rate limits. Workers' native `fetch` has no proxy option, so the proxy is implemented over raw TCP sockets (`cloudflare:sockets`): the Worker opens the proxy connection, performs the `CONNECT` (HTTP) or SOCKS5 handshake, upgrades to TLS against the target, and speaks HTTP/1.1.
 
 ```
-proxyUrl = "https://proxy.example.com/?url="        -> https://proxy.example.com/?url=<encoded target>
-proxyUrl = "https://proxy.example.com/fetch?u={url}" -> ...?u=<encoded target>
+socks5://user:pass@host:1080
+http://user:pass@host:8080
+http://host:3128
 ```
 
-It applies to the fetch tier (X, Instagram, Threads). Browser-rendered platforms (TikTok video feeds, Facebook) ignore it — Cloudflare Browser Rendering runs the Chromium and cannot route through an arbitrary proxy.
+Supported schemes: `http`, `https`, `socks5`. Username/password auth is honored for both. It applies to the fetch tier (X, Instagram, Threads, and the fetch-first path of TikTok/Facebook). The Browser Rendering fallback (TikTok video feeds, Facebook posts) ignores it — Cloudflare Browser Rendering runs the Chromium and cannot route through an arbitrary proxy.
 
 ### Response
 

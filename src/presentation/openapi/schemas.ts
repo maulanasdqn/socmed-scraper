@@ -94,7 +94,7 @@ export const openApiSchemas = {
     required: ["url"],
     properties: {
       url: { type: "string", format: "uri", example: "https://x.com/nasa" },
-      proxyUrl: { type: "string", default: "", example: "https://proxy.example.com/?url=" },
+      proxyUrl: { type: "string", default: "", example: "socks5://user:pass@host:1080" },
     },
   },
   FeedsRequest: {
@@ -103,7 +103,7 @@ export const openApiSchemas = {
     properties: {
       url: { type: "string", format: "uri", example: "https://x.com/nasa" },
       niche: { type: "string", default: "", example: "mars" },
-      proxyUrl: { type: "string", default: "", example: "https://proxy.example.com/?url=" },
+      proxyUrl: { type: "string", default: "", example: "socks5://user:pass@host:1080" },
     },
   },
 } as const;
