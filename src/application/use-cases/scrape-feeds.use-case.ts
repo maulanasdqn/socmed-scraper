@@ -13,14 +13,14 @@ export class ScrapeFeedsUseCase {
     private readonly cache: CachePort,
   ) {}
 
-  async execute(url: string, niche: string): Promise<ScrapeOutput> {
+  async execute(url: string, niche: string, proxyUrl = ""): Promise<ScrapeOutput> {
     const platform = detectPlatform(url);
     const key = buildCacheKey("feeds", platform, `${url}|${niche}`);
 
     const cached = await this.cache.get<ScrapeResult<NormalizedPost>>(key);
     if (cached) return { ...cached, cached: true };
 
-    const result = await this.registry.resolve(platform).feeds(url, niche);
+    const result = await this.registry.resolve(platform).feeds(url, niche, { proxyUrl });
     if (!result.degraded && result.data.length > 0) {
       await this.cache.set(key, result, TTL_SECONDS);
     }

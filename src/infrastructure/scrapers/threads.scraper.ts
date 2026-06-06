@@ -1,4 +1,4 @@
-import type { Scraper } from "../../domain/ports/scraper.port";
+import type { Scraper, ScrapeOptions } from "../../domain/ports/scraper.port";
 import type { HttpClientPort } from "../../domain/ports/http-client.port";
 import type { BrowserPort } from "../../domain/ports/browser.port";
 import type { ScrapeResult } from "../../domain/entities/scrape-result";
@@ -20,14 +20,14 @@ export class ThreadsScraper implements Scraper {
     private readonly browser: BrowserPort,
   ) {}
 
-  private async loadScripts(url: string): Promise<unknown[]> {
-    const res = await this.http.get(url, { referer: "https://www.threads.net/" });
+  private async loadScripts(url: string, proxyUrl?: string): Promise<unknown[]> {
+    const res = await this.http.get(url, { referer: "https://www.threads.net/", proxyUrl });
     const html = res.ok ? res.body : await this.browser.renderHtml(url).catch(() => "");
     return html ? extractAllJsonScripts(html) : [];
   }
 
-  async profile(url: string): Promise<ScrapeResult<NormalizedProfile>> {
-    const scripts = await this.loadScripts(profilePage(extractUsername(url)));
+  async profile(url: string, options?: ScrapeOptions): Promise<ScrapeResult<NormalizedProfile>> {
+    const scripts = await this.loadScripts(profilePage(extractUsername(url)), options?.proxyUrl);
     const profile = parseThreadsProfile(scripts, url);
     return {
       platform: Platform.Threads,
@@ -36,9 +36,13 @@ export class ThreadsScraper implements Scraper {
     };
   }
 
-  async feeds(url: string, niche: string): Promise<ScrapeResult<NormalizedPost>> {
+  async feeds(
+    url: string,
+    niche: string,
+    options?: ScrapeOptions,
+  ): Promise<ScrapeResult<NormalizedPost>> {
     const target = niche ? searchPage(niche) : profilePage(extractUsername(url));
-    const scripts = await this.loadScripts(target);
+    const scripts = await this.loadScripts(target, options?.proxyUrl);
     const posts = parseThreadsPosts(scripts);
     return { platform: Platform.Threads, data: posts, degraded: posts.length === 0 };
   }

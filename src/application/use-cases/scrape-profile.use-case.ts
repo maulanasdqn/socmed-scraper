@@ -13,14 +13,14 @@ export class ScrapeProfileUseCase {
     private readonly cache: CachePort,
   ) {}
 
-  async execute(url: string): Promise<ScrapeOutput> {
+  async execute(url: string, proxyUrl = ""): Promise<ScrapeOutput> {
     const platform = detectPlatform(url);
     const key = buildCacheKey("profile", platform, url);
 
     const cached = await this.cache.get<ScrapeResult<NormalizedProfile>>(key);
     if (cached) return { ...cached, cached: true };
 
-    const result = await this.registry.resolve(platform).profile(url);
+    const result = await this.registry.resolve(platform).profile(url, { proxyUrl });
     if (!result.degraded && result.data.length > 0) {
       await this.cache.set(key, result, TTL_SECONDS);
     }

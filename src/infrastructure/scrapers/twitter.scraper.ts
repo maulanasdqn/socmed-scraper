@@ -1,4 +1,4 @@
-import type { Scraper } from "../../domain/ports/scraper.port";
+import type { Scraper, ScrapeOptions } from "../../domain/ports/scraper.port";
 import type { HttpClientPort } from "../../domain/ports/http-client.port";
 import type { ScrapeResult } from "../../domain/entities/scrape-result";
 import type { NormalizedProfile } from "../../domain/entities/profile";
@@ -20,16 +20,17 @@ const filterByNiche = (posts: NormalizedPost[], niche: string): NormalizedPost[]
 export class TwitterScraper implements Scraper {
   constructor(private readonly http: HttpClientPort) {}
 
-  private async load(username: string): Promise<unknown> {
+  private async load(username: string, proxyUrl?: string): Promise<unknown> {
     const res = await this.http.get(timelineUrl(username), {
       referer: "https://twitter.com/",
+      proxyUrl,
     });
     if (!res.ok) return null;
     return extractScriptJson(res.body, "__NEXT_DATA__");
   }
 
-  async profile(url: string): Promise<ScrapeResult<NormalizedProfile>> {
-    const data = await this.load(extractUsername(url));
+  async profile(url: string, options?: ScrapeOptions): Promise<ScrapeResult<NormalizedProfile>> {
+    const data = await this.load(extractUsername(url), options?.proxyUrl);
     const profile = data ? parseTwitterProfile(data, url) : null;
     return {
       platform: Platform.Twitter,
@@ -38,8 +39,12 @@ export class TwitterScraper implements Scraper {
     };
   }
 
-  async feeds(url: string, niche: string): Promise<ScrapeResult<NormalizedPost>> {
-    const data = await this.load(extractUsername(url));
+  async feeds(
+    url: string,
+    niche: string,
+    options?: ScrapeOptions,
+  ): Promise<ScrapeResult<NormalizedPost>> {
+    const data = await this.load(extractUsername(url), options?.proxyUrl);
     const posts = data ? filterByNiche(parseTwitterPosts(data), niche) : [];
     return { platform: Platform.Twitter, data: posts, degraded: posts.length === 0 };
   }

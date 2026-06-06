@@ -14,7 +14,11 @@ export class ScrapeController {
   async scrapeProfile(c: Context) {
     const parsed = profileSchema.safeParse(await c.req.json().catch(() => ({})));
     if (!parsed.success) return c.json({ message: "Invalid payload", data: [] }, 400);
-    return this.handle(c, () => this.profileUseCase.execute(parsed.data.url), "Profile scraped");
+    return this.handle(
+      c,
+      () => this.profileUseCase.execute(parsed.data.url, parsed.data.proxyUrl),
+      "Profile scraped",
+    );
   }
 
   async scrapeFeeds(c: Context) {
@@ -22,7 +26,7 @@ export class ScrapeController {
     if (!parsed.success) return c.json({ message: "Invalid payload", data: [] }, 400);
     return this.handle(
       c,
-      () => this.feedsUseCase.execute(parsed.data.url, parsed.data.niche),
+      () => this.feedsUseCase.execute(parsed.data.url, parsed.data.niche, parsed.data.proxyUrl),
       "Feeds scraped",
     );
   }

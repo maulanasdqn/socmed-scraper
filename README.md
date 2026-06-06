@@ -23,16 +23,25 @@ Base path: `/api/v1/scrape`. Both endpoints are `POST` with a JSON body.
 ### POST /per-profile
 
 ```json
-{ "url": "https://x.com/nasa" }
+{ "url": "https://x.com/nasa", "proxyUrl": "" }
 ```
 
 ### POST /feeds
 
 ```json
-{ "url": "https://www.instagram.com/natgeo/", "niche": "nature" }
+{ "url": "https://www.instagram.com/natgeo/", "niche": "nature", "proxyUrl": "" }
 ```
 
 `niche` is optional. When set, the scraper hits the platform's hashtag/explore endpoint for that term instead of the profile timeline. When empty, it returns the profile's recent posts.
+
+`proxyUrl` is optional. When set, fetch-tier requests are routed through it to escape the shared Worker IP and its rate limits. The target URL is URL-encoded and appended to `proxyUrl`, unless `proxyUrl` contains the literal `{url}` placeholder, in which case the target is substituted there:
+
+```
+proxyUrl = "https://proxy.example.com/?url="        -> https://proxy.example.com/?url=<encoded target>
+proxyUrl = "https://proxy.example.com/fetch?u={url}" -> ...?u=<encoded target>
+```
+
+It applies to the fetch tier (X, Instagram, Threads). Browser-rendered platforms (TikTok video feeds, Facebook) ignore it — Cloudflare Browser Rendering runs the Chromium and cannot route through an arbitrary proxy.
 
 ### Response
 
@@ -158,7 +167,7 @@ These are platform constraints, not unfinished work.
 - **Facebook posts.** Facebook does not expose post data to logged-out visitors. Profile metadata (name, handle, follower count, avatar, bio) works; the post feed does not.
 - **Trending.** True no-auth "what's trending now" is not reliably available. `niche` search falls back to the platform's public hashtag/explore page.
 
-The only fixes for the IP-bound limits are authenticated sessions or residential proxies, both of which break the all-Cloudflare, no-auth design. Out of scope.
+The fetch-tier IP limits can be worked around per request with `proxyUrl` (see [API](#post-per-profile)). The browser-tier limits (TikTok feeds, Facebook posts) cannot — they need authenticated sessions, which is out of scope.
 
 ## Stack
 

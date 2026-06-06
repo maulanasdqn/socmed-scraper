@@ -13,18 +13,26 @@ const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms
 const isRetryable = (status: number): boolean =>
   status === 401 || status === 429 || status === 403 || status >= 500;
 
+const applyProxy = (url: string, proxyUrl?: string): string => {
+  if (!proxyUrl) return url;
+  return proxyUrl.includes("{url}")
+    ? proxyUrl.replace("{url}", encodeURIComponent(url))
+    : proxyUrl + encodeURIComponent(url);
+};
+
 export class FetchHttpClientAdapter implements HttpClientPort {
   async get(url: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
     const referer = options.referer ?? new URL(url).origin + "/";
     const headers = buildBrowserHeaders(referer, options.headers);
     const retries = options.retries ?? MAX_RETRIES;
+    const target = applyProxy(url, options.proxyUrl);
 
     let attempt = 0;
     let last: HttpResponse = { status: 0, ok: false, body: "", setCookie: "" };
 
     while (attempt <= retries) {
       try {
-        const res = await fetch(url, { headers, redirect: "follow" });
+        const res = await fetch(target, { headers, redirect: "follow" });
         const body = await res.text();
         last = {
           status: res.status,

@@ -1,4 +1,4 @@
-import type { Scraper } from "../../domain/ports/scraper.port";
+import type { Scraper, ScrapeOptions } from "../../domain/ports/scraper.port";
 import type { HttpClientPort } from "../../domain/ports/http-client.port";
 import type { BrowserPort } from "../../domain/ports/browser.port";
 import type { ScrapeResult } from "../../domain/entities/scrape-result";
@@ -27,8 +27,8 @@ export class TikTokScraper implements Scraper {
     private readonly browser: BrowserPort,
   ) {}
 
-  private async loadData(url: string): Promise<unknown> {
-    const res = await this.http.get(url, { referer: "https://www.tiktok.com/" });
+  private async loadData(url: string, proxyUrl?: string): Promise<unknown> {
+    const res = await this.http.get(url, { referer: "https://www.tiktok.com/", proxyUrl });
     let html = res.ok ? res.body : "";
     if (!html.includes(DATA_ID)) {
       html = await this.browser
@@ -38,14 +38,17 @@ export class TikTokScraper implements Scraper {
     return extractScriptJson(html, DATA_ID);
   }
 
-  private async oembed(url: string): Promise<NormalizedPost[]> {
-    const res = await this.http.get(oembedUrl(url), { referer: "https://www.tiktok.com/" });
+  private async oembed(url: string, proxyUrl?: string): Promise<NormalizedPost[]> {
+    const res = await this.http.get(oembedUrl(url), {
+      referer: "https://www.tiktok.com/",
+      proxyUrl,
+    });
     const json = res.ok ? parseJsonLoose<Record<string, unknown>>(res.body) : null;
     return json ? parseTikTokOembed(json, url) : [];
   }
 
-  async profile(url: string): Promise<ScrapeResult<NormalizedProfile>> {
-    const data = await this.loadData(profilePage(extractUsername(url)));
+  async profile(url: string, options?: ScrapeOptions): Promise<ScrapeResult<NormalizedProfile>> {
+    const data = await this.loadData(profilePage(extractUsername(url)), options?.proxyUrl);
     const profile = data ? parseTikTokProfile(data, url) : null;
     return {
       platform: Platform.TikTok,
@@ -66,12 +69,16 @@ export class TikTokScraper implements Scraper {
     return posts;
   }
 
-  async feeds(url: string, niche: string): Promise<ScrapeResult<NormalizedPost>> {
+  async feeds(
+    url: string,
+    niche: string,
+    options?: ScrapeOptions,
+  ): Promise<ScrapeResult<NormalizedPost>> {
     const target = niche ? tagPage(niche) : profilePage(extractUsername(url));
-    const data = await this.loadData(target);
+    const data = await this.loadData(target, options?.proxyUrl);
     let posts = data ? parseTikTokPosts(data) : [];
     if (posts.length === 0) posts = await this.capturePosts(target);
-    if (posts.length === 0 && url.includes("/video/")) posts = await this.oembed(url);
+    if (posts.length === 0 && url.includes("/video/")) posts = await this.oembed(url, options?.proxyUrl);
     return { platform: Platform.TikTok, data: posts, degraded: posts.length === 0 };
   }
 }
