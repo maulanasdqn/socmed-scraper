@@ -1,22 +1,25 @@
 import { Platform } from "../../../domain/entities/platform";
 import type { NormalizedProfile } from "../../../domain/entities/profile";
 import type { NormalizedPost } from "../../../domain/entities/post";
-import { collectObjects, firstObject } from "./deep";
+import { collectObjects } from "./deep";
 import { toNumber, toText } from "./html-json";
-
-const isTikTokUser = (o: Record<string, unknown>): boolean =>
-  "uniqueId" in o && "nickname" in o;
-
-const isTikTokStats = (o: Record<string, unknown>): boolean =>
-  "followerCount" in o && "followingCount" in o;
 
 const isTikTokVideo = (o: Record<string, unknown>): boolean =>
   "desc" in o && "stats" in o && "author" in o;
 
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+
+const userDetail = (root: unknown): Record<string, unknown> => {
+  const scope = asRecord(asRecord(root).__DEFAULT_SCOPE__);
+  return asRecord(asRecord(scope["webapp.user-detail"]).userInfo);
+};
+
 export const parseTikTokProfile = (root: unknown, url: string): NormalizedProfile | null => {
-  const user = firstObject(root, isTikTokUser);
-  if (!user) return null;
-  const stats = firstObject(root, isTikTokStats) ?? {};
+  const info = userDetail(root);
+  const user = asRecord(info.user);
+  if (!user.uniqueId) return null;
+  const stats = { ...asRecord(info.statsV2), ...asRecord(info.stats) };
   return {
     platform: Platform.TikTok,
     id: toText(user.id),

@@ -13,12 +13,13 @@ import { TikTokScraper } from "./infrastructure/scrapers/tiktok.scraper";
 import { FacebookScraper } from "./infrastructure/scrapers/facebook.scraper";
 import { ScrapeController } from "./presentation/controllers/scrape.controller";
 
+export const buildBrowserContainer = (env: CloudflareBindings): PuppeteerBrowserAdapter =>
+  new PuppeteerBrowserAdapter(env.BROWSER_MANAGER as DurableObjectNamespace<BrowserManager>);
+
 export const buildController = (env: CloudflareBindings): ScrapeController => {
   const http = new FetchHttpClientAdapter();
   const cache = new KvCacheAdapter(env.SCRAPE_CACHE);
-  const browser = new PuppeteerBrowserAdapter(
-    env.BROWSER_MANAGER as DurableObjectNamespace<BrowserManager>,
-  );
+  const browser = buildBrowserContainer(env);
 
   const registry = new ScraperRegistry([
     [Platform.Twitter, new TwitterScraper(http)],

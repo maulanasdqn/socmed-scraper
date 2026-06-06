@@ -54,10 +54,23 @@ export class TikTokScraper implements Scraper {
     };
   }
 
+  private async capturePosts(target: string): Promise<NormalizedPost[]> {
+    const bodies = await this.browser
+      .captureResponses(target, "item_list", { scroll: true, settleMs: 3_000 })
+      .catch(() => [] as string[]);
+    const posts: NormalizedPost[] = [];
+    for (const body of bodies) {
+      const json = parseJsonLoose(body);
+      if (json) posts.push(...parseTikTokPosts(json));
+    }
+    return posts;
+  }
+
   async feeds(url: string, niche: string): Promise<ScrapeResult<NormalizedPost>> {
     const target = niche ? tagPage(niche) : profilePage(extractUsername(url));
     const data = await this.loadData(target);
     let posts = data ? parseTikTokPosts(data) : [];
+    if (posts.length === 0) posts = await this.capturePosts(target);
     if (posts.length === 0 && url.includes("/video/")) posts = await this.oembed(url);
     return { platform: Platform.TikTok, data: posts, degraded: posts.length === 0 };
   }

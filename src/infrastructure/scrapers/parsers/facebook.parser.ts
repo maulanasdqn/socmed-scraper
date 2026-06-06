@@ -22,20 +22,39 @@ const findLdEntity = (html: string): Record<string, unknown> | null => {
   return null;
 };
 
+const usernameFromUrl = (url: string): string => {
+  try {
+    const parts = new URL(url).pathname.split("/").filter(Boolean);
+    const handle = parts[0] ?? "";
+    return handle === "profile.php" ? "" : handle;
+  } catch {
+    return "";
+  }
+};
+
+const followersFromText = (text: string): number => {
+  const match = text.match(/([\d.,]+)\s*(?:likes|followers|people follow)/i);
+  return match ? toNumber(match[1]) : 0;
+};
+
 export const parseFacebookProfile = (html: string, url: string): NormalizedProfile | null => {
   const ld = findLdEntity(html);
   const title = metaContent(html, "og:title");
+  const description = toText(ld?.description) || metaContent(html, "og:description");
   if (!ld && !title) return null;
   const image = (ld?.image as Record<string, unknown> | undefined)?.url ?? metaContent(html, "og:image");
+  const ldFollowers = toNumber(
+    (ld?.interactionStatistic as Record<string, unknown>)?.userInteractionCount,
+  );
   return {
     platform: Platform.Facebook,
     id: toText(ld?.identifier),
-    username: toText(ld?.alternateName),
+    username: toText(ld?.alternateName) || usernameFromUrl(url),
     displayName: toText(ld?.name) || title,
-    bio: toText(ld?.description) || metaContent(html, "og:description"),
+    bio: description,
     avatarUrl: toText(image),
     url,
-    followers: toNumber((ld?.interactionStatistic as Record<string, unknown>)?.userInteractionCount),
+    followers: ldFollowers || followersFromText(description),
     following: 0,
     postsCount: 0,
     verified: false,
