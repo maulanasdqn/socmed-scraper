@@ -22,7 +22,7 @@ export const buildController = (env: CloudflareBindings): ScrapeController => {
 
   const registry = new ScraperRegistry([
     [Platform.Twitter, new TwitterScraper(http)],
-    [Platform.Instagram, new InstagramScraper(http, browser)],
+    [Platform.Instagram, new InstagramScraper(http)],
     [Platform.Threads, new ThreadsScraper(http, browser)],
     [Platform.TikTok, new TikTokScraper(http, browser)],
     [Platform.Facebook, new FacebookScraper(http, browser)],

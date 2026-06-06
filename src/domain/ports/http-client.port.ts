@@ -8,6 +8,7 @@ export interface HttpResponse {
   status: number;
   ok: boolean;
   body: string;
+  setCookie: string;
 }
 
 export interface HttpClientPort {

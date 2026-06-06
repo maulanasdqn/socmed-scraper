@@ -11,7 +11,7 @@ const BASE_DELAY_MS = 350;
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 const isRetryable = (status: number): boolean =>
-  status === 429 || status === 403 || status >= 500;
+  status === 401 || status === 429 || status === 403 || status >= 500;
 
 export class FetchHttpClientAdapter implements HttpClientPort {
   async get(url: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
@@ -20,16 +20,21 @@ export class FetchHttpClientAdapter implements HttpClientPort {
     const retries = options.retries ?? MAX_RETRIES;
 
     let attempt = 0;
-    let last: HttpResponse = { status: 0, ok: false, body: "" };
+    let last: HttpResponse = { status: 0, ok: false, body: "", setCookie: "" };
 
     while (attempt <= retries) {
       try {
         const res = await fetch(url, { headers, redirect: "follow" });
         const body = await res.text();
-        last = { status: res.status, ok: res.ok, body };
+        last = {
+          status: res.status,
+          ok: res.ok,
+          body,
+          setCookie: res.headers.get("set-cookie") ?? "",
+        };
         if (res.ok || !isRetryable(res.status)) return last;
       } catch {
-        last = { status: 0, ok: false, body: "" };
+        last = { status: 0, ok: false, body: "", setCookie: "" };
       }
       attempt += 1;
       if (attempt <= retries) {
