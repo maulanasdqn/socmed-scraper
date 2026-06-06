@@ -1,6 +1,8 @@
 import { Hono } from 'hono'
+import { swaggerUI } from '@hono/swagger-ui'
 import { renderer } from './renderer'
 import { scrapeRoutes } from './presentation/routes/scrape.routes'
+import { openApiDocument } from './presentation/openapi/document'
 
 export { BrowserManager } from './infrastructure/browser/browser-manager.do'
 
@@ -13,5 +15,8 @@ app.get('/', (c) => {
 })
 
 app.route('/api/v1/scrape', scrapeRoutes)
+
+app.get('/openapi.json', (c) => c.json(openApiDocument))
+app.get('/docs', swaggerUI({ url: '/openapi.json' }))
 
 export default app
